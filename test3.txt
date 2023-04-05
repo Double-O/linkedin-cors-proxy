@@ -1,0 +1,30 @@
+public void TestGetURN()
+{
+    StartCoroutine(GetURN());
+}
+
+IEnumerator GetURN()
+{
+    using (UnityWebRequest webRequest = UnityWebRequest.Get("https://api.linkedin.com/v2/me"))
+    {
+        webRequest.SetRequestHeader("X-Restli-Protocol-Version", "2.0.0");
+        webRequest.SetRequestHeader("Authorization", "Bearer AQUL6Ei5u42FjzNj6416-hX5_1MdIMY67qq1N3zK_znmN4sAYgEOl_-xgvJmqy5MMVUnbqOX9_SDLDuZY5kWaGfi-3Qmvkkb7w8Jv0bZgYDhGjIcUGJbQGZOiMVxqFFN_KRHMHd43W3KVmq3Ij1W45LwGREr2-PSQm3_oWz6zzP-aMdf2dQLiSUPjKfsYVYimqPim8B9YFA6XUtXe50I_XvF1vCcdZuqlHuuRZd9E5Qzk_rQNWCinZlHP4Tef8aG3_qadPZRiEb8lAwmfivSrgQFUh6iWKB8u1YpwL1szDILP4Fu6ki5XAlgu6gz-h70SW83gzb_nriX8BhnXRmHNXonkF62kA");
+        webRequest.SetRequestHeader("Access-Control-Allow-Credentials", "true");
+        webRequest.SetRequestHeader("Access-Control-Allow-Headers", "Accept, X-Access-Token, X-Application-Name, X-Request-Sent-Time");
+        webRequest.SetRequestHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+        webRequest.SetRequestHeader("Access-Control-Allow-Origin", "*");
+        webRequest.SetRequestHeader("Access-Control-Expose-Headers", "Content-Length, Content-Encoding");
+        yield return webRequest.SendWebRequest();
+        if (webRequest.isNetworkError)
+        {
+            Debug.Log(webRequest.error);
+        }
+        else
+        {
+            string resp = webRequest.downloadHandler.text;
+            Debug.Log(webRequest.responseCode);
+            Debug.Log("RESP:" + resp);
+        }
+    }
+}
+
