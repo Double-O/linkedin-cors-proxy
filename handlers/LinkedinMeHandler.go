@@ -41,7 +41,7 @@ func HandleLinkedInMe() gin.HandlerFunc {
 		// req.Header.Set("Authorization", "Bearer AQUL6Ei5u42FjzNj6416-hX5_1MdIMY67qq1N3zK_znmN4sAYgEOl_-xgvJmqy5MMVUnbqOX9_SDLDuZY5kWaGfi-3Qmvkkb7w8Jv0bZgYDhGjIcUGJbQGZOiMVxqFFN_KRHMHd43W3KVmq3Ij1W45LwGREr2-PSQm3_oWz6zzP-aMdf2dQLiSUPjKfsYVYimqPim8B9YFA6XUtXe50I_XvF1vCcdZuqlHuuRZd9E5Qzk_rQNWCinZlHP4Tef8aG3_qadPZRiEb8lAwmfivSrgQFUh6iWKB8u1YpwL1szDILP4Fu6ki5XAlgu6gz-h70SW83gzb_nriX8BhnXRmHNXonkF62kA")
 		req.Header.Set("Authorization", ctx.GetHeader("Authorization")) // pass Authorization header from the client
 		req.Header.Set("Access-Control-Allow-Credentials", "true")
-		req.Header.Set("Access-Control-Allow-Headers", "Accept, X-Access-Token, X-Application-Name, X-Request-Sent-Time")
+		req.Header.Set("Access-Control-Allow-Headers", "Accept, X-Access-Token, X-Application-Name, X-Request-Sent-Time, Authorization")
 		req.Header.Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		req.Header.Set("Access-Control-Allow-Origin", "*")
 		req.Header.Set("Access-Control-Expose-Headers", "Content-Length, Content-Encoding")

@@ -13,7 +13,7 @@ func main() {
 	// enabling cors
 	config := cors.DefaultConfig()
 	config.AllowAllOrigins = true
-	config.AllowMethods = []string{"GET"}
+	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-Restli-Protocol-Version"}
 	r.Use(cors.New(config))
 
 	r.GET("/ping", func(c *gin.Context) {
