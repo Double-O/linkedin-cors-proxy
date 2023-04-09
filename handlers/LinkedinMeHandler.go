@@ -34,6 +34,7 @@ func HandleLinkedInMe() gin.HandlerFunc {
 		req, err := http.NewRequest("GET", "https://api.linkedin.com/v2/me", nil)
 		if err != nil {
 			fmt.Printf("[handlers.handleLinkedInMe] error while creating request, err : %+v\n", err)
+			ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 
@@ -50,6 +51,7 @@ func HandleLinkedInMe() gin.HandlerFunc {
 		resp, err := client.Do(req)
 		if err != nil {
 			fmt.Printf("[handlers.handleLinkedInMe] error while executing request, err : %+v\n", err)
+			ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 		defer resp.Body.Close()
@@ -57,6 +59,7 @@ func HandleLinkedInMe() gin.HandlerFunc {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			fmt.Printf("[handlers.handleLinkedInMe] error while reading resp body, err : %+v\n", err)
+			ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 
@@ -64,6 +67,7 @@ func HandleLinkedInMe() gin.HandlerFunc {
 		err = json.Unmarshal(body, &person)
 		if err != nil {
 			fmt.Printf("[handlers.handleLinkedInMe] error while unmarshaling person, err : %+v\n", err)
+			ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 
