@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type Person struct {
+type LinkedinMeResp struct {
 	LocalizedLastName string `json:"localizedLastName"`
 	FirstName         struct {
 		Localized       map[string]string `json:"localized"`
@@ -34,7 +34,10 @@ func HandleLinkedInMe() gin.HandlerFunc {
 		req, err := http.NewRequest("GET", "https://api.linkedin.com/v2/me", nil)
 		if err != nil {
 			fmt.Printf("[handlers.handleLinkedInMe] error while creating request, err : %+v\n", err)
-			ctx.AbortWithError(http.StatusInternalServerError, err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"code":          http.StatusInternalServerError,
+				"error_message": err.Error(),
+			})
 			return
 		}
 
@@ -48,37 +51,56 @@ func HandleLinkedInMe() gin.HandlerFunc {
 		req.Header.Set("Access-Control-Expose-Headers", "Content-Length, Content-Encoding")
 
 		client := &http.Client{}
-		resp, err := client.Do(req)
+		respHttp, err := client.Do(req)
 		if err != nil {
 			fmt.Printf("[handlers.handleLinkedInMe] error while executing request, err : %+v\n", err)
-			ctx.AbortWithError(http.StatusInternalServerError, err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"code":          http.StatusInternalServerError,
+				"error_message": err.Error(),
+			})
 			return
 		}
-		defer resp.Body.Close()
+		defer respHttp.Body.Close()
 
-		body, err := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(respHttp.Body)
 		if err != nil {
 			fmt.Printf("[handlers.handleLinkedInMe] error while reading resp body, err : %+v\n", err)
-			ctx.AbortWithError(http.StatusInternalServerError, err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"code":          http.StatusInternalServerError,
+				"error_message": err.Error(),
+			})
 			return
 		}
 
-		var person Person
-		err = json.Unmarshal(body, &person)
+		if respHttp.StatusCode != http.StatusOK {
+			fmt.Printf("[handlers.handleLinkedInMe] error from linkedin api, err : %+s\n", string(body))
+			ctx.JSON(respHttp.StatusCode, gin.H{
+				"code":          respHttp.StatusCode,
+				"error_message": string(body),
+			})
+			return
+		}
+
+		var resp LinkedinMeResp
+		err = json.Unmarshal(body, &resp)
 		if err != nil {
 			fmt.Printf("[handlers.handleLinkedInMe] error while unmarshaling person, err : %+v\n", err)
-			ctx.AbortWithError(http.StatusInternalServerError, err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{
+				"code":          http.StatusInternalServerError,
+				"error_message": err.Error(),
+			})
 			return
 		}
 
-		fmt.Printf("[handlers.handleLinkedInMe] person : %+v\n", person)
+		// this can be removed
+		fmt.Printf("[handlers.handleLinkedInMe] LinkedinMeResp : %+v\n", resp)
 
-		for key, values := range resp.Header {
+		for key, values := range respHttp.Header {
 			for _, value := range values {
 				ctx.Header(key, value)
 			}
 		}
-		ctx.JSON(http.StatusOK, person)
+		ctx.JSON(http.StatusOK, resp)
 
 	}
 }

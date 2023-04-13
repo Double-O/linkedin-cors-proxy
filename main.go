@@ -22,6 +22,7 @@ func main() {
 		})
 	})
 	r.GET("/linkedin/v2/me", handlers.HandleLinkedInMe())
+	r.GET("/linkedin/v2/accessToken", handlers.HandleLinkedinAccessToken())
 	r.Run() // listen and serve on 0.0.0.0:8080
 
 }

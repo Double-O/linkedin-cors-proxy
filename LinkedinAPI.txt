@@ -1,0 +1,335 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
+using UnityEngine;
+using UnityEngine.Networking;
+using TMPro;
+public class AccessResponse
+{
+    public string access_token;
+    public int expires_in;
+    public string scope;
+}
+
+public class LinkedinAPI : MonoBehaviour
+{
+    public enum ERequest
+    {
+        Access,
+        Share,
+        Register,
+        ShareImg
+    }
+    const string SHARE_URL = "https://api.linkedin.com/v2/ugcPosts";
+    const string ACTKN_URL = "https://www.linkedin.com/oauth/v2/accessToken";
+    const string REGISTER_URL = "https://api.linkedin.com/v2/assets?action=registerUpload";
+    public string redirect_URL = "https://gothic-antyszowinizm.opx.pl/link";
+
+    public SnapCamera snapCamera;
+    
+    //client id
+    public string cid= "client_id=77amrtqh9w5t8f";
+    
+    //secret
+    public string sc= "1EdQcMLKr9JaDNwu";
+    public string code;
+    public TMP_InputField outputTxt;
+
+    public string actkn;
+    public string shareJson;
+    public string shareImgJson;
+    public string registerJson;
+    public string uploadURL;
+    public string asset;
+
+    string urn = "";
+
+    void Start()
+    {
+
+    }
+
+    public void Fyrst()
+    {
+        TryGetCode();
+        StartCoroutine(GetURN());
+    }
+
+    bool TryGetCode()
+    {
+        string patern = "?code=";
+        string str = Application.absoluteURL;
+        int start = str.IndexOf(patern);
+        if (start != -1 && str.Length > start+ patern.Length)
+        {
+            Debug.Log(str.Substring(start + patern.Length));
+            return true;
+        }
+        return false;
+    }
+
+    public void Click_1stStep()
+    {
+        Application.OpenURL("https://www.linkedin.com/oauth/v2/authorization?response_type=code&client_id=" + cid + "&redirect_uri=" + redirect_URL + "&scope=r_liteprofile%20r_emailaddress%20w_member_social");
+    }
+    public void Click_2ndStep()
+    {
+        StartCoroutine(SendRequestUWR(ERequest.Access,
+            "grant_type=authorization_code"
+            + "&code=" + code
+            + "&client_id=" + cid
+            + "&client_secret=" + sc
+            + "&redirect_uri=" + redirect_URL));
+        /*
+        SendRequest(ERequest.Access,
+            "grant_type=authorization_code"
+            + "&code=" + code
+            + "&client_id=" + cid
+            + "&client_secret=" + sc
+            + "&redirect_uri=" + redirect_URL);
+        */
+    }
+    public void Share()
+    {
+        StartCoroutine(SendRequestUWR(ERequest.Share,
+            shareJson));
+    }
+    public void ShareImg()
+    {
+        SendRequest(ERequest.ShareImg,
+            shareImgJson
+            .Replace("$1", urn)
+            .Replace("$2", "lalalala")
+            .Replace("$3", "rerere")
+            .Replace("$4", asset)
+            .Replace("$5", "xxxxxxxxxx")
+            );
+    }
+    public void Register()
+    {
+        StartCoroutine(SendRequestUWR(ERequest.Register,registerJson.Replace("$1", urn)));
+
+        SendRequest(ERequest.Register,
+            registerJson.Replace("$1", urn));
+    }
+
+    public void ClickUpload()
+    {
+        StartCoroutine(Upload());
+    }
+
+    public void SendRequest(ERequest eRequest, string sendData)
+    {
+        string url = "";
+        switch (eRequest)
+        {
+            case ERequest.Access:
+                url = ACTKN_URL;
+                break;
+
+            case ERequest.Share:
+            case ERequest.ShareImg:
+                url = SHARE_URL;
+                break;
+
+            case ERequest.Register:
+                url = REGISTER_URL;
+                break;
+        }
+        HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
+        req.Method = "POST";
+
+        req.Headers.Add("X-Restli-Protocol-Version: 2.0.0");
+
+        byte[] postBytes = Encoding.UTF8.GetBytes(sendData);
+        switch (eRequest)
+        {
+            case ERequest.Access:
+                req.ContentType = "application/x-www-form-urlencoded";
+                break;
+
+            case ERequest.Register:
+            case ERequest.Share:
+            case ERequest.ShareImg:
+                req.Headers.Add("Authorization", "Bearer " + actkn);
+                break;
+        }
+        req.ContentLength = postBytes.Length;
+        Stream requestStream = req.GetRequestStream();
+        requestStream.Write(postBytes, 0, postBytes.Length);
+        requestStream.Close();
+        Debug.Log("SEND:" + sendData);
+
+        try
+        {
+            HttpWebResponse response = (HttpWebResponse)req.GetResponse();
+            var sr = new StreamReader(response.GetResponseStream(), Encoding.UTF8);
+            string responseText = sr.ReadToEnd();
+            Debug.Log("RESP:" + responseText);
+            outputTxt.text = responseText;
+
+            switch(eRequest)
+            {
+                case ERequest.Access:
+                    var json = JsonUtility.FromJson<AccessResponse>(responseText);
+                    actkn = json.access_token;
+                    break;
+
+                case ERequest.Register:
+                    string pattern = "\"uploadUrl\":\"";
+                    int start = responseText.IndexOf(pattern);
+                    if (start != -1)
+                    {
+                        int end = responseText.IndexOf('\"', start + pattern.Length + 1);
+                        uploadURL = responseText.Substring(start + pattern.Length, end - start - pattern.Length);
+                    }
+                    pattern = "\"asset\":\"";
+                    start = responseText.IndexOf(pattern);
+                    if (start != -1)
+                    {
+                        int end = responseText.IndexOf('\"', start + pattern.Length + 1);
+                        asset = responseText.Substring(start + pattern.Length, end - start - pattern.Length);
+                    }
+                    break;
+            }
+        }
+        catch (WebException e)
+        {
+            Debug.Log("Net fail: <" + e.Message + ">");
+            outputTxt.text = e.Message;
+        }
+    }
+
+    IEnumerator SendRequestUWR(ERequest eRequest, string sendData)
+    {
+        string url = "";
+        switch (eRequest)
+        {
+            case ERequest.Access:
+                url = ACTKN_URL;
+                break;
+
+            case ERequest.Share:
+            case ERequest.ShareImg:
+                url = SHARE_URL;
+                break;
+
+            case ERequest.Register:
+                url = REGISTER_URL;
+                break;
+        }
+        WWWForm form = new WWWForm();
+        using (UnityWebRequest webRequest = new UnityWebRequest(url, "POST"))
+        {
+            byte[] bodyRaw = Encoding.UTF8.GetBytes(sendData);
+            webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            webRequest.downloadHandler = new DownloadHandlerBuffer();
+            if (eRequest == ERequest.Access)
+            {
+                webRequest.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            } else
+            {
+                webRequest.SetRequestHeader("X-Restli-Protocol-Version", "2.0.0");
+                webRequest.SetRequestHeader("Content-Type", "application/json");
+                webRequest.SetRequestHeader("Authorization", "Bearer " + actkn);
+            }
+            yield return webRequest.SendWebRequest();
+            if (webRequest.isNetworkError)
+            {
+                Debug.Log(webRequest.error);
+            }
+            else
+            {
+                string resp = webRequest.downloadHandler.text;
+                Debug.Log(webRequest.responseCode);
+                Debug.Log("RESP:" + resp);
+                outputTxt.text = resp;
+
+                switch (eRequest)
+                {
+                    case ERequest.Access:
+                        var json = JsonUtility.FromJson<AccessResponse>(resp);
+                        actkn = json.access_token;
+                        break;
+
+                    case ERequest.Register:
+                        string pattern = "\"uploadUrl\":\"";
+                        int start = resp.IndexOf(pattern);
+                        if (start != -1)
+                        {
+                            int end = resp.IndexOf('\"', start + pattern.Length + 1);
+                            uploadURL = resp.Substring(start + pattern.Length, end - start - pattern.Length);
+                        }
+                        pattern = "\"asset\":\"";
+                        start = resp.IndexOf(pattern);
+                        if (start != -1)
+                        {
+                            int end = resp.IndexOf('\"', start + pattern.Length + 1);
+                            asset = resp.Substring(start + pattern.Length, end - start - pattern.Length);
+                        }
+                        break;
+                }
+            }
+        }
+    }
+
+    IEnumerator GetURN()
+    {
+        using (UnityWebRequest webRequest = UnityWebRequest.Get("https://linkedin-cors-proxy-production.up.railway.app/linkedin/v2/me"))
+        {
+            webRequest.SetRequestHeader("X-Restli-Protocol-Version", "2.0.0");
+            webRequest.SetRequestHeader("Authorization", "Bearer " + actkn);
+            //webRequest.SetRequestHeader("Access-Control-Allow-Credentials", "true");
+            //webRequest.SetRequestHeader("Access-Control-Allow-Headers", "Accept, X-Access-Token, X-Application-Name, X-Request-Sent-Time");
+            //webRequest.SetRequestHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            //webRequest.SetRequestHeader("Access-Control-Allow-Origin", "*");
+            //webRequest.SetRequestHeader("Access-Control-Expose-Headers", "Content-Length, Content-Encoding");
+            yield return webRequest.SendWebRequest();
+            if (webRequest.isNetworkError)
+            {
+                Debug.Log(webRequest.error);
+            }
+            else
+            {
+                string resp = webRequest.downloadHandler.text;
+                Debug.Log(webRequest.responseCode);
+                Debug.Log("RESP:" + resp);
+                outputTxt.text = resp;
+                string pattern = "\"id\":\"";
+                int start = resp.IndexOf(pattern);
+                if (start != -1)
+                {
+                    int end = resp.IndexOf('\"', start + pattern.Length + 1);
+                    urn = resp.Substring(start + pattern.Length, end - start - pattern.Length);
+                }
+            }
+        }
+    }
+
+    IEnumerator Upload()
+    {
+        snapCamera.SS();
+        yield return new WaitForSeconds(0.3f);
+        WWWForm form = new WWWForm();
+        form.AddBinaryData("file", snapCamera.png, "img.png");
+        using (UnityWebRequest webRequest = UnityWebRequest.Post(uploadURL, form))
+        {
+            webRequest.SetRequestHeader("Authorization", "Bearer " + actkn);
+            yield return webRequest.SendWebRequest();
+
+            if (webRequest.isNetworkError)
+            {
+                Debug.Log(webRequest.error);
+            }
+            else
+            {
+                Debug.Log(webRequest.responseCode);
+            }
+        }
+    }
+
+}
