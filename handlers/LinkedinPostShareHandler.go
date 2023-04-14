@@ -16,7 +16,7 @@ type LinkedinPostShareResp struct {
 
 func HandleLinkedinPostShare() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-
+		fmt.Printf("I AM HERE in HandleLinkedinPostShare")
 		var postBody map[string]interface{}
 		if err := ctx.BindJSON(&postBody); err != nil {
 			fmt.Printf("[handlers.HandleLinkedinPostShare] error while fetching postbody from request, err : %+v\n", err)
