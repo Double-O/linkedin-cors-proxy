@@ -84,7 +84,7 @@ func HandleLinkedInMe() gin.HandlerFunc {
 		var resp LinkedinMeResp
 		err = json.Unmarshal(body, &resp)
 		if err != nil {
-			fmt.Printf("[handlers.handleLinkedInMe] error while unmarshaling person, err : %+v\n", err)
+			fmt.Printf("[handlers.handleLinkedInMe] error while unmarshaling resp, err : %+v\n", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":          http.StatusInternalServerError,
 				"error_message": err.Error(),

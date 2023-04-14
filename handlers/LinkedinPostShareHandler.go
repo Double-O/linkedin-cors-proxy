@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,17 +10,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type LinkedinAccesstokenResp struct {
-	AccessToken string `json:"access_token"`
-	ExpiresIn   int    `json:"expires_in"`
-	Scope       string `json:"scope"`
+type LinkedinPostShareResp struct {
+	ID string `json:"id"`
 }
 
-func HandleLinkedinAccessToken() gin.HandlerFunc {
+func HandleLinkedinPostShare() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		req, err := http.NewRequest("POST", "https://www.linkedin.com/oauth/v2/accessToken?"+ctx.Request.URL.RawQuery, nil)
+
+		var postBody map[string]interface{}
+		if err := ctx.BindJSON(&postBody); err != nil {
+			fmt.Printf("[handlers.HandleLinkedinPostShare] error while fetching postbody from request, err : %+v\n", err)
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"code":          http.StatusBadRequest,
+				"error_message": err.Error(),
+			})
+			return
+		}
+
+		buf := new(bytes.Buffer)
+		json.NewEncoder(buf).Encode(postBody)
+		req, err := http.NewRequest("POST", "https://api.linkedin.com/v2/ugcPosts", buf)
 		if err != nil {
-			fmt.Printf("[handlers.HandleLinkedinAccessToken] error while creating request, err : %+v\n", err)
+			fmt.Printf("[handlers.HandleLinkedinPostShare] error while creating request, err : %+v\n", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":          http.StatusInternalServerError,
 				"error_message": err.Error(),
@@ -28,12 +40,12 @@ func HandleLinkedinAccessToken() gin.HandlerFunc {
 		}
 
 		req.Header.Set("X-Restli-Protocol-Version", "2.0.0")
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Authorization", ctx.GetHeader("Authorization")) // pass Authorization header from the client
 
 		client := &http.Client{}
 		respHttp, err := client.Do(req)
 		if err != nil {
-			fmt.Printf("[handlers.HandleLinkedinAccessToken] error while executing request, err : %+v\n", err)
+			fmt.Printf("[handlers.HandleLinkedinPostShare] error while executing request, err : %+v\n", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":          http.StatusInternalServerError,
 				"error_message": err.Error(),
@@ -44,7 +56,7 @@ func HandleLinkedinAccessToken() gin.HandlerFunc {
 
 		body, err := io.ReadAll(respHttp.Body)
 		if err != nil {
-			fmt.Printf("[handlers.HandleLinkedinAccessToken] error while reading resp body, err : %+v\n", err)
+			fmt.Printf("[handlers.HandleLinkedinPostShare] error while reading resp body, err : %+v\n", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":          http.StatusInternalServerError,
 				"error_message": err.Error(),
@@ -52,8 +64,8 @@ func HandleLinkedinAccessToken() gin.HandlerFunc {
 			return
 		}
 
-		if respHttp.StatusCode != http.StatusOK {
-			fmt.Printf("[handlers.HandleLinkedinAccessToken] error from linkedin api, err : %+s\n", string(body))
+		if respHttp.StatusCode != http.StatusCreated {
+			fmt.Printf("[handlers.HandleLinkedinPostShare] error from linkedin api, err : %+s\n", string(body))
 			ctx.JSON(respHttp.StatusCode, gin.H{
 				"code":          respHttp.StatusCode,
 				"error_message": string(body),
@@ -61,10 +73,10 @@ func HandleLinkedinAccessToken() gin.HandlerFunc {
 			return
 		}
 
-		var resp LinkedinAccesstokenResp
+		var resp LinkedinPostShareResp
 		err = json.Unmarshal(body, &resp)
 		if err != nil {
-			fmt.Printf("[handlers.HandleLinkedinAccessToken] error while unmarshaling resp, err : %+v\n", err)
+			fmt.Printf("[handlers.HandleLinkedinPostShare] error while unmarshaling resp, err : %+v\n", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":          http.StatusInternalServerError,
 				"error_message": err.Error(),
@@ -80,7 +92,7 @@ func HandleLinkedinAccessToken() gin.HandlerFunc {
 				ctx.Header(key, value)
 			}
 		}
-		ctx.JSON(http.StatusOK, resp)
+		ctx.JSON(http.StatusCreated, resp)
 
 	}
 }
