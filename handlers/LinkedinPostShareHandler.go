@@ -16,7 +16,6 @@ type LinkedinPostShareResp struct {
 
 func HandleLinkedinPostShare() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		fmt.Printf("I AM HERE in HandleLinkedinPostShare")
 		var postBody map[string]interface{}
 		if err := ctx.BindJSON(&postBody); err != nil {
 			fmt.Printf("[handlers.HandleLinkedinPostShare] error while fetching postbody from request, err : %+v\n", err)
@@ -40,6 +39,7 @@ func HandleLinkedinPostShare() gin.HandlerFunc {
 		}
 
 		req.Header.Set("X-Restli-Protocol-Version", "2.0.0")
+		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", ctx.GetHeader("Authorization")) // pass Authorization header from the client
 
 		client := &http.Client{}
