@@ -10,15 +10,35 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type LinkedinPostShareResp struct {
-	ID string `json:"id"`
+type LinkedinRegisterUploadResp struct {
+	Value Value `json:"value"`
 }
 
-func HandleLinkedinPostShare() gin.HandlerFunc {
+type Headers struct {
+	MediaTypeFamily string `json:"media-type-family"`
+}
+
+type ComLinkedinDigitalmediaUploadingMediaUploadHTTPRequest struct {
+	UploadURL string  `json:"uploadUrl"`
+	Headers   Headers `json:"headers"`
+}
+
+type UploadMechanism struct {
+	ComLinkedinDigitalmediaUploadingMediaUploadHTTPRequest ComLinkedinDigitalmediaUploadingMediaUploadHTTPRequest `json:"com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest"`
+}
+
+type Value struct {
+	MediaArtifact      string          `json:"mediaArtifact"`
+	UploadMechanism    UploadMechanism `json:"uploadMechanism"`
+	Asset              string          `json:"asset"`
+	AssetRealTimeTopic string          `json:"assetRealTimeTopic"`
+}
+
+func HandleLinkedinRegisterUpload() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		var postBody map[string]interface{}
 		if err := ctx.BindJSON(&postBody); err != nil {
-			fmt.Printf("[handlers.HandleLinkedinPostShare] error while fetching postbody from request, err : %+v\n", err)
+			fmt.Printf("[handlers.HandleLinkedinRegisterUpload] error while fetching postbody from request, err : %+v\n", err)
 			ctx.JSON(http.StatusBadRequest, gin.H{
 				"code":          http.StatusBadRequest,
 				"error_message": err.Error(),
@@ -28,9 +48,9 @@ func HandleLinkedinPostShare() gin.HandlerFunc {
 
 		buf := new(bytes.Buffer)
 		json.NewEncoder(buf).Encode(postBody)
-		req, err := http.NewRequest("POST", "https://api.linkedin.com/v2/ugcPosts", buf)
+		req, err := http.NewRequest("POST", "https://api.linkedin.com/v2/assets?action=registerUpload", buf)
 		if err != nil {
-			fmt.Printf("[handlers.HandleLinkedinPostShare] error while creating request, err : %+v\n", err)
+			fmt.Printf("[handlers.HandleLinkedinRegisterUpload] error while creating request, err : %+v\n", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":          http.StatusInternalServerError,
 				"error_message": err.Error(),
@@ -45,7 +65,7 @@ func HandleLinkedinPostShare() gin.HandlerFunc {
 		client := &http.Client{}
 		respHttp, err := client.Do(req)
 		if err != nil {
-			fmt.Printf("[handlers.HandleLinkedinPostShare] error while executing request, err : %+v\n", err)
+			fmt.Printf("[handlers.HandleLinkedinRegisterUpload] error while executing request, err : %+v\n", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":          http.StatusInternalServerError,
 				"error_message": err.Error(),
@@ -56,7 +76,7 @@ func HandleLinkedinPostShare() gin.HandlerFunc {
 
 		body, err := io.ReadAll(respHttp.Body)
 		if err != nil {
-			fmt.Printf("[handlers.HandleLinkedinPostShare] error while reading resp body, err : %+v\n", err)
+			fmt.Printf("[handlers.HandleLinkedinRegisterUpload] error while reading resp body, err : %+v\n", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":          http.StatusInternalServerError,
 				"error_message": err.Error(),
@@ -65,7 +85,7 @@ func HandleLinkedinPostShare() gin.HandlerFunc {
 		}
 
 		if respHttp.StatusCode != http.StatusCreated && respHttp.StatusCode != http.StatusOK {
-			fmt.Printf("[handlers.HandleLinkedinPostShare] error from linkedin api, err : %+s\n", string(body))
+			fmt.Printf("[handlers.HandleLinkedinRegisterUpload] error from linkedin api, err : %+s\n", string(body))
 			ctx.JSON(respHttp.StatusCode, gin.H{
 				"code":          respHttp.StatusCode,
 				"error_message": string(body),
@@ -73,10 +93,10 @@ func HandleLinkedinPostShare() gin.HandlerFunc {
 			return
 		}
 
-		var resp LinkedinPostShareResp
+		var resp LinkedinRegisterUploadResp
 		err = json.Unmarshal(body, &resp)
 		if err != nil {
-			fmt.Printf("[handlers.HandleLinkedinPostShare] error while unmarshaling resp, err : %+v\n", err)
+			fmt.Printf("[handlers.HandleLinkedinRegisterUpload] error while unmarshaling resp, err : %+v\n", err)
 			ctx.JSON(http.StatusInternalServerError, gin.H{
 				"code":          http.StatusInternalServerError,
 				"error_message": err.Error(),
@@ -85,16 +105,15 @@ func HandleLinkedinPostShare() gin.HandlerFunc {
 		}
 
 		// this can be removed
-		fmt.Printf("[handlers.HandleLinkedinAccessToken] LinkedinAccesstokenResp : %+v\n", resp)
+		fmt.Printf("[handlers.HandleLinkedinRegisterUpload] LinkedinAccesstokenResp : %+v\n", resp)
 
 		for key, values := range respHttp.Header {
 			for _, value := range values {
-				if ctx.GetHeader(key) != "" {
+				if ctx.GetHeader(key) != "" && key != "Content-Length" {
 					ctx.Header(key, value)
 				}
 			}
 		}
 		ctx.JSON(http.StatusCreated, resp)
-
 	}
 }

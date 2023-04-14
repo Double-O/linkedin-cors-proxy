@@ -97,7 +97,9 @@ func HandleLinkedInMe() gin.HandlerFunc {
 
 		for key, values := range respHttp.Header {
 			for _, value := range values {
-				ctx.Header(key, value)
+				if ctx.GetHeader(key) != "" {
+					ctx.Header(key, value)
+				}
 			}
 		}
 		ctx.JSON(http.StatusOK, resp)
