@@ -25,6 +25,7 @@ func main() {
 	r.GET("/linkedin/v2/accessToken", handlers.HandleLinkedinAccessToken())
 	r.POST("/linkedin/v2/ugcPost", handlers.HandleLinkedinPostShare())
 	r.POST("/linkedin/v2/assets/registerUpload", handlers.HandleLinkedinRegisterUpload())
+	r.POST("/linkedin/v2/assets/upload-file", handlers.HandleLinkedinMediaUpload())
 
 	r.Run() // listen and serve on 0.0.0.0:8080
 
